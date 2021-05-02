@@ -130,3 +130,30 @@ for i in range(len(clean_answers)):
     clean_answers[i] += ' <EOS>'
 
 #%%
+# Translating all the questions and the answers into integers
+# and Replacing all the words that where filtered out by <OUT>
+questions_to_int = []
+for question in clean_questions:
+    ints = []
+    for word in question.split():
+        if word not in questionswords2int:
+            ints.append(questionswords2int['<OUT>'])
+        else:
+            ints.append(questionswords2int[word])
+    questions_to_int.append(ints)
+
+answers_to_int = []
+for answer in clean_answers:
+    ints = []
+    for word in answer.split():
+        if word not in questionswords2int:
+            ints.append(answerswords2int['<OUT>'])
+        else:
+            ints.append(answerswords2int[word])
+    answers_to_int.append(ints)
+
+#%%
+# Sorting questions and answers by the length of questions
+# and exclude long lines
+sorted_clean_questions = []
+sorted_clean_answers = []
