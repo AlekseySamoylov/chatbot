@@ -5,6 +5,8 @@ import tensorflow as tf
 import re
 import time
 
+from tensorflow.python.ops.rnn import bidirectional_dynamic_rnn
+
 print("Hello world")
 
 # Import datasets
@@ -157,3 +159,47 @@ for answer in clean_answers:
 # and exclude long lines
 sorted_clean_questions = []
 sorted_clean_answers = []
+for length in range(1, 25):
+    for entry in enumerate(questions_to_int):
+        line = entry[1]
+        if len(line) == length:
+            line_idx = entry[0]
+            sorted_clean_questions.append(questions_to_int[line_idx])
+            sorted_clean_answers.append(answers_to_int[line_idx])
+
+#%%
+######################### BUILDING THE SEQ2SEQ MODEL ##################################
+
+# Creating placeholders for the inputs and the targets
+def model_inputs():
+    inputs = tf.placeholder(tf.int32, [None, None], name='input')
+    targets = tf.placeholder(tf.int32, [None, None], name='target')
+    learning_rate = tf.placeholder(tf.int32, name='learning_rate')
+    keep_prob = tf.placeholder(tf.int32, name='keep_prob')
+    return inputs, targets, learning_rate, keep_prob
+
+#%%
+# Preprocessing the targets
+# Create batches and add <SOS> at the beginning of all answers
+def preprocess_targets(targets, word2int, batch_size):
+    left_side = tf.fill([batch_size, 1], word2int['<SOS>'])
+    # Зачем удалили последний элемент???
+    right_side = tf.strided_slice(targets, [0,0], [batch_size, -1], [1, 1])
+    preprocessed_targets = tf.concat([left_side, right_side], 1)
+    return preprocessed_targets
+
+#%%
+# Creating the Encoder RNN Layer
+def encoder_rnn_layer(rnn_inputs, rnn_size, num_layers, kep_prob, sequence_length):
+    lstm = tf.nn.rnn_cell.BasicLSTMCell(rnn_size)
+    lstm_dropout = tf.nn.rnn_cell.DropoutWrapper(lstm, input_keep_prob=kep_prob)
+    encoder_cell = tf.nn.rnn_cell.MultiRNNCell([lstm_dropout] * num_layers)
+    _, encoder_state = bidirectional_dynamic_rnn(cell_fw=encoder_cell,
+                                                 cell_bw=encoder_cell,
+                                                 sequence_length=sequence_length,
+                                                 inputs=rnn_inputs,
+                                                 dtype=tf.float32)
+    return encoder_state
+
+#%%
+# Decoding the training set
